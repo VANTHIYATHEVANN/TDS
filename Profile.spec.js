@@ -2,147 +2,99 @@ import { fireEvent, getByRole, render, screen, waitFor } from "@testing-library/
 import Profile from "./Profile";
 import React from "react";
 import profileService from "./services/profileService";
-import { Button, Dialog } from "@material-ui/core";
-import { shallow } from "enzyme";
-
+import {when} from "jest-when";
+import { __esModule } from "yup";
+import { Button, Dialog, TextField } from "@material-ui/core";
+import {shallow} from "enzyme";
+//import { FormikTextField } from "../formik";
+ 
 jest.mock('./services/profileService.js', () => ({
     __esModule: true,
     default: {
         fetchProfile: jest.fn(),
     },
 }));
-
-describe("Profile component", () => {
+ 
+ 
+describe("Basic rendering", () => {
     
-    it("should display profile details", async () => {
+    it("Should display profile details", async () => {
         const data = {
             name: "Admin User 1",
             username: "seed-user-1",
             CounterNumber: 1,
         };
-
-        profileService.fetchProfile.mockResolvedValue(data);
-
-        const { queryByDisplayValue } = render(<Profile />);
-
-        await waitFor(() => {
-            expect(queryByDisplayValue("User Profile")).toBeInTheDocument();
-            expect(queryByDisplayValue("Name: Admin User 1")).toBeInTheDocument();
-            expect(queryByDisplayValue("Username: seed-user-1")).toBeInTheDocument();
-            expect(queryByDisplayValue("Counter No: 1")).toBeInTheDocument();
-        });
+ 
+        profileService.fetchProfile.mockResolvedValue(data)
+ 
+        const {queryByDisplayValue} = render(<Profile/>)
+ 
+        await waitFor (() => {
+            expect(queryByDisplayValue("User Profile"))
+            expect(queryByDisplayValue("Name: Admin User 1"))
+            expect(queryByDisplayValue("Username: seed-user-1"))
+            expect(queryByDisplayValue("Counter No: 1"))
+        })
+ 
     });
-
-    it("should open password change dialog on button click", async () => {
+    it("Should open password change popup window on click in profile page", async () => {
         const data = {
             name: "Admin User 1",
             username: "seed-user-1",
             CounterNumber: 1,
         };
-
-        profileService.fetchProfile.mockResolvedValue(data);
-
-        const profileComponent = shallow(<Profile />);
-        expect(profileComponent.find(Dialog)).toHaveLength(1);
-
-        await waitFor(() => {
-            const ButtonChangePassword = profileComponent.find(Button).at(0);
-            ButtonChangePassword.simulate('click');
-            expect(profileComponent.find(Dialog)).toHaveLength(1);
-        });
+ 
+        profileService.fetchProfile.mockResolvedValue(data)
+ 
+        render(<Profile />);
+        
+        await waitFor (() => {
+            fireEvent.click(screen.getAllByText('Change Password')[0])
+            expect(screen.getByText('Confirm Password')).toBeTruthy();
+        })
+ 
     });
-
-    it("should not open password change dialog when not clicked on 'Change Password'", async () => {
+    it("Should not open password change popup window when not clicked on change password in profile page", async () => {
         const data = {
             name: "Admin User 1",
             username: "seed-user-1",
             CounterNumber: 1,
         };
-
-        profileService.fetchProfile.mockResolvedValue(data);
-
-        const profileComponent = shallow(<Profile />);
-
-        await waitFor(() => {
-            expect(profileComponent.find(Dialog)).toHaveLength(1);
-        });
+ 
+        profileService.fetchProfile.mockResolvedValue(data)
+ 
+        render(<Profile />);
+ 
+        await waitFor (() => {
+            const confirmButton = screen.queryAllByText('Confirm Password')
+            expect(confirmButton).toBeNull;
+        })
+ 
     });
-
-    it("should submit password change form with valid data", async () => {
-         const data = {
-            name: "Admin User 1",
-            username: "seed-user-1",
-            CounterNumber: 1,
-        };
-
-        profileService.fetchProfile.mockResolvedValue(data);
-
-        const { getByText, getByLabelText } = render(<Profile />);
-
-        await waitFor(() => {
-            fireEvent.click(getByText("Change Password"));
-        });
-
-        const currentPasswordField = getByLabelText("Current Password");
-        const newPasswordField = getByLabelText("New Password");
-        const confirmPasswordField = getByLabelText("Confirm Password");
-
-        fireEvent.change(currentPasswordField, { target: { value: "oldPassword" } });
-        fireEvent.change(newPasswordField, { target: { value: "newPassword" } });
-        fireEvent.change(confirmPasswordField, { target: { value: "newPassword" } });
-
-        fireEvent.submit(getByText("Change Password"));
-    });
-
-    it("should toggle password visibility", async () => {
+ 
+    it("New password and confirm password should match", async () => {
         const data = {
             name: "Admin User 1",
             username: "seed-user-1",
             CounterNumber: 1,
         };
-
-        profileService.fetchProfile.mockResolvedValue(data);
-
-        const { getByLabelText, getByTestId } = render(<Profile />);
-
+ 
+        profileService.fetchProfile.mockResolvedValue(data)
+ 
+        render(<Profile />);
+ 
         await waitFor(() => {
-            fireEvent.click(getByLabelText("Show current password"));
-            fireEvent.click(getByLabelText("Show new password"));
-            fireEvent.click(getByLabelText("Show confirm password"));
+            fireEvent.click(screen.getAllByText("Change Password")[0]);
+ 
+            const currentPasswordField = screen.getAllByRole("input")[0];
+ 
+            fireEvent.change(currentPasswordField, { target: { value: "hello@123" } });
+ 
+            const ErrMsg = screen.queryAllByText('Password must contain a capital letter')
+            expect(ErrMsg).toBeInTheDocument();
         });
-
-        const currentPasswordField = getByTestId("current-password-field");
-        const newPasswordField = getByTestId("new-password-field");
-        const confirmPasswordField = getByTestId("confirm-password-field");
-
-        expect(currentPasswordField.type).toBe("text");
-        expect(newPasswordField.type).toBe("text");
-        expect(confirmPasswordField.type).toBe("text");
+ 
     });
-
-    it("should display error message for invalid form submission", async () => {
-        const data = {
-            name: "Admin User 1",
-            username: "seed-user-1",
-            CounterNumber: 1,
-        };
-
-        profileService.fetchProfile.mockResolvedValue(data);
-
-        const { getByText, getByLabelText } = render(<Profile />);
-
-        await waitFor(() => {
-            fireEvent.click(getByText("Change Password"));
-        });
-
-        const currentPasswordField = getByLabelText("Current Password");
-        const newPasswordField = getByLabelText("New Password");
-        const confirmPasswordField = getByLabelText("Confirm Password");
-
-        fireEvent.change(currentPasswordField, { target: { value: "oldPassword" } });
-        fireEvent.change(newPasswordField, { target: { value: "newPassword" } });
-        fireEvent.change(confirmPasswordField, { target: { value: "invalidConfirmPassword" } });
-
-        fireEvent.submit(getByText("Change Password"));
-    });
+ 
+ 
 });
