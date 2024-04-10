@@ -1,4 +1,4 @@
-import {Avatar, Button, Dialog, Typography} from "@material-ui/core";
+import {Avatar, Button, Dialog, IconButton, Typography} from "@material-ui/core";
 import LocalMoviesIcon from "@material-ui/icons/LocalMovies";
 import TextField from "@material-ui/core/TextField";
 import DialogContent from "@material-ui/core/DialogContentText";
@@ -7,13 +7,14 @@ import styles from "./styles/seatSelectionDialogStyles"
 import CustomerDetailsDialog from "./CustomerDetailsDialog";
 import {INR_SYMBOL} from "../../Constants";
 import PropTypes from "prop-types";
-
-const SeatSelectionDialog = ({selectedShow, updateShowsRevenue, open, onClose}) => {
+import CloseIcon from "@material-ui/icons/Close"
+ 
+const SeatSelectionDialog = ({selectedShow, updateShowsRevenue, open, onClose, isadmin}) => {
     const [showCustomerDetails, setShowCustomerDetails] = useState(false);
     const [buttonopen,setButtonOpen]=useState(false);
     const [seats, setSeats] = useState(1);
     const classes = styles();
-
+ 
     const handleAvatarClick = () =>{
         setButtonOpen(true);
     }
@@ -31,22 +32,25 @@ const SeatSelectionDialog = ({selectedShow, updateShowsRevenue, open, onClose}) 
                 <div className={classes.container}>
                     <Typography variant="h6" className={classes.dialogHeader}>
                         Select Seats
-                    <button onClick={handleClose}>&#10005;</button>
+                    <IconButton class = {classes.closeButton} onClick={handleClose}>
+                        <CloseIcon />
+                    </IconButton>
                     </Typography>
                     <div className={classes.dialogContent}>
                         <div className={classes.moviePicture} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
-                            <Avatar src={selectedShow.movie.poster} variant="square"
-                            >                           
-                                <LocalMoviesIcon/>
+                            <Avatar style={{ height: '75px', width:'50px', objectFit:'contain'}}variant="square">
+                                        <img style={{ height: '100%', width:'100%',backgroundColor: 'white',objectFit:'contain'}} src={selectedShow.movie.poster} onError={(e)=>{e.target.src='https://camo.githubusercontent.com/ce4aeeb65d16cc893612014277a5457e0f928d859b83ee36eb362b7e460f5c71/68747470733a2f2f692e696d6775722e636f6d2f5a324d594e626a2e706e672f6c617267655f6d6f7669655f706f737465722e706e67' }} alt="Movie"></img>
                             </Avatar>
                         </div>
-                        <Dialog open={buttonopen} onClose={handleButtonClose}>
-                            <h2 align="center">{selectedShow.movie.name} <button onClick={handleButtonClose}>&#10005;</button></h2>
-                            
+                        <Dialog open={buttonopen} onClose={handleButtonClose} fullWidth ={true} maxWidth = "xs" >
+                            <h2 align="center">{selectedShow.movie.name} <IconButton class = {classes.closeButton} onClick={handleButtonClose}><CloseIcon /></IconButton></h2>
                             <DialogContent>
-                                <img src={selectedShow.movie.poster} alt ={selectedShow.movie.name} />
+                            
+                                        <img style={{ height: '100%', width:'100%',backgroundColor: 'white', padding: '10px 20px 20px 20px'}} src={selectedShow.movie.poster} onError={(e)=>{e.target.src='https://camo.githubusercontent.com/ce4aeeb65d16cc893612014277a5457e0f928d859b83ee36eb362b7e460f5c71/68747470733a2f2f692e696d6775722e636f6d2f5a324d594e626a2e706e672f6c617267655f6d6f7669655f706f737465722e706e67' }} alt="Movie"></img>
+                                
+                            
                             </DialogContent>
-                        </Dialog> 
+                        </Dialog>
                         <div className={classes.dialogMain}>
                             <Typography className={classes.movieMarquee} color="primary">
                                 {selectedShow.movie.name}
@@ -71,14 +75,15 @@ const SeatSelectionDialog = ({selectedShow, updateShowsRevenue, open, onClose}) 
                                         {`${INR_SYMBOL}${(selectedShow.cost * seats).toFixed(2)}`}
                                     </Typography>
                                 </div>
-                                <Button variant="contained" color="primary"
-                                        onClick={() => {
-                                            setShowCustomerDetails(true);
-                                            onClose();
-                                        }}
-                                        className={classes.dialogButton}>
-                                    Next
-                                </Button>
+                                { isadmin &&   <Button variant="contained" color="primary"
+                                            onClick={() => {
+                                                setShowCustomerDetails(true);
+                                                onClose();
+                                            }}
+                                            className={classes.dialogButton}>
+                                        Next
+                                    </Button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -92,12 +97,12 @@ const SeatSelectionDialog = ({selectedShow, updateShowsRevenue, open, onClose}) 
         </>
     );
 }
-
+ 
 SeatSelectionDialog.propTypes = {
     selectedShow: PropTypes.object.isRequired,
     updateShowsRevenue: PropTypes.func.isRequired,
     open: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired
 };
-
-export default SeatSelectionDialog; 
+ 
+export default SeatSelectionDialog;
