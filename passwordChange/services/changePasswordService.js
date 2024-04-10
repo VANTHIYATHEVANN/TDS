@@ -28,5 +28,4 @@ export const PasswordSchema = object({
     .matches( /^(?=.*[A-Z])/, 'Password must contain a capital letter')
     .min(8, 'Password should be atleast 8 characters long')
     .max(64, 'Password should be atmost 64 characters long')
-    });
-
+    }); 
