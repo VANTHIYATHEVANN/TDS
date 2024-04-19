@@ -82,19 +82,24 @@ const SeatMapDialog = ({
         </Typography>
         <div className={classes.dialogContent}>
           <div className={classes.seatMap}>
-            {[...Array(10)].map((_, rowIndex) => (
+            {[...Array(Math.ceil(noOfSeats / 10))].map((_, rowIndex) => (
               <div key={rowIndex} className={classes.rowContainer}>
                 <div className={classes.rowLabel}>{String.fromCharCode(65 + rowIndex)}</div>
-                <div className={classes.seatColumn}>
-                  {[...Array(10)].map((_, seatIndex) => (
-                    <Seat
-                      key={rowIndex * 10 + seatIndex + 1}
-                      id={rowIndex * 10 + seatIndex + 1}
-                      selected={selectedSeats.includes(rowIndex * 10 + seatIndex + 1)}
-                      onSelect={handleSelectSeat}
-                    />
-                  ))}
-                </div>
+                {[...Array(10)].map((_, seatIndex) => {
+                  const seatNumber = rowIndex * 10 + seatIndex + 1;
+                  if (seatNumber <= noOfSeats) {
+                    return (
+                      <Seat
+                        key={seatNumber}
+                        id={seatNumber}
+                        selected={selectedSeats.includes(seatNumber)}
+                        onSelect={handleSelectSeat}
+                      />
+                    );
+                  } else {
+                    return null;
+                  }
+                })}
               </div>
             ))}
           </div>
