@@ -27,7 +27,7 @@ const SeatMapDialog = ({
   hasError,
   isAdmin,
   updateShowsRevenue,
-  onClose
+  onclose
 }) => {
   const classes = styles();
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -35,7 +35,7 @@ const SeatMapDialog = ({
 
   const handleClose = () => {
     setSelectedSeats([]);
-    onClose();
+    onclose();
   };
 
   const handleSelectSeat = (seatId) => {
@@ -57,9 +57,9 @@ const SeatMapDialog = ({
           <h1>Seat Map</h1>
         </div>
         <div className={`seat-map-dialog ${open ? "open" : ""}`}>
-          <div className="seat-map">
+          <div className="seatMap">
             {[...Array(10)].map((_, index) => (
-              <div key={index} className="seat-column">
+              <div key={index} className="seatColumn">
                 {[...Array(10)].map((_, i) => (
                   <Seat
                     key={index * 10 + i + 1}
@@ -79,7 +79,7 @@ const SeatMapDialog = ({
             onClick={() => {
               if (!hasError) {
                 setProceed(true);
-                onClose();
+                onclose();
               }
             }}
           >
