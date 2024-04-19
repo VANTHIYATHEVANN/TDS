@@ -1,20 +1,22 @@
 import React, { useState } from "react";
+import {IconButton,Typography} from "@material-ui/core";
 import CustomerDetailsDialog from "./CustomerDetailsDialog";
 import { Button } from "@material-ui/core";
 import styles from "./styles/seatSelectionDialogStyles";
 import { Dialog } from "@material-ui/core";
-
+import CloseIcon from "@material-ui/icons/Close";
 const Seat = ({ id, selected, onSelect }) => {
+  const classes=styles();
   const handleClick = () => {
     onSelect(id);
   };
 
   return (
     <div
-      className={`seat ${selected ? "selected" : ""}`}
+      className={classes.seat} 
       onClick={handleClick}
+      style={selected ? {backgroundColor:'green'}:{}}
     >
-      {id}
     </div>
   );
 };
@@ -53,13 +55,20 @@ const SeatMapDialog = ({
   return (
     <>
       <Dialog open={open} onClose={handleClose} maxWidth={false}>
-        <div>
-          <h1>Seat Map</h1>
-        </div>
-        <div className={`seat-map-dialog ${open ? "open" : ""}`}>
-          <div className="seatMap">
+      <Typography variant="h6" className={classes.dialogHeader}>
+            Select Seats
+            <IconButton className={classes.closeButton} onClick={handleClose}>
+              <CloseIcon />
+            </IconButton>
+        </Typography>
+        <Typography className={classes.movieMarquee} color="primary" align="center">
+                {selectedShow.movie.name}
+              </Typography>
+        <Typography variant="body2" align="center" style={{textDecorationLine:'underline',textDecorationColor:'black',textDecorationThickness:'1.5px'}}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SCREEN THIS WAY!&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</Typography>
+        <div className={classes.dialogContent}>
+          <div className={classes.seatMap}>
             {[...Array(10)].map((_, index) => (
-              <div key={index} className="seatColumn">
+              <div key={index} className={classes.seatColumn}>
                 {[...Array(10)].map((_, i) => (
                   <Seat
                     key={index * 10 + i + 1}
@@ -71,7 +80,10 @@ const SeatMapDialog = ({
               </div>
             ))}
           </div>
-          <Button
+        </div>
+        <div className={classes.dialogBottom}>
+        <div>Selected Seats: {selectedSeats.join(",")}</div>
+        <Button
             variant="contained"
             color="primary"
             className={classes.dialogButton}
@@ -85,9 +97,9 @@ const SeatMapDialog = ({
           >
             Next
           </Button>
-          <div>Selected Seats: {selectedSeats.join(",")}</div>
-        </div>
+          </div>
       </Dialog>
+      
       <CustomerDetailsDialog
         seats={selectedSeats.length}
         selectedShow={selectedShow}
@@ -96,10 +108,10 @@ const SeatMapDialog = ({
         isAdmin={isAdmin}
         onClose={() => {
           setProceed(false);
-        }}
-      />
+        }} />
     </>
   );
-};
+}
+
 
 export default SeatMapDialog;
