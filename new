@@ -1,0 +1,144 @@
+import React, { useState } from "react";
+import { IconButton, Typography } from "@material-ui/core";
+import CustomerDetailsDialog from "./CustomerDetailsDialog";
+import { Button } from "@material-ui/core";
+import styles from "./styles/seatSelectionDialogStyles";
+import { Dialog } from "@material-ui/core";
+import CloseIcon from "@material-ui/icons/Close";
+
+const Seat = ({ id, selected, onSelect }) => {
+  const classes = styles();
+  const handleClick = () => {
+    onSelect(id);
+  };
+
+  return (
+    <div
+      className={classes.seat}
+      onClick={handleClick}
+      style={selected ? { backgroundColor: "green" } : {}}
+    ></div>
+  );
+};
+
+const SeatMapDialog = ({
+  isOpen,
+  noOfSeats,
+  selectedShow,
+  open,
+  hasError,
+  isAdmin,
+  updateShowsRevenue,
+  onClose,
+}) => {
+  const classes = styles();
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [proceed, setProceed] = useState(false);
+
+  const handleClose = () => {
+    setSelectedSeats([]);
+    onClose();
+  };
+
+  const handleSelectSeat = (seatId) => {
+    setSelectedSeats((prevSelectedSeats) =>
+      prevSelectedSeats.includes(seatId)
+        ? prevSelectedSeats.filter((id) => id !== seatId)
+        : [...prevSelectedSeats, seatId]
+    );
+  };
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <>
+      <Dialog open={open} onClose={handleClose} maxWidth={false}>
+        <Typography variant="h6" className={classes.dialogHeader}>
+          Select Seats
+          <IconButton className={classes.closeButton} onClick={handleClose}>
+            <CloseIcon />
+          </IconButton>
+        </Typography>
+        <Typography
+          className={classes.movieMarquee}
+          color="primary"
+          align="center"
+        >
+          {selectedShow.movie.name}
+        </Typography>
+        <Typography
+          variant="body2"
+          align="center"
+          style={{
+            textDecorationLine: "underline",
+            textDecorationColor: "black",
+            textDecorationThickness: "1.5px",
+          }}
+        >
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SCREEN THIS WAY!
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        </Typography>
+        <div className={classes.dialogContent}>
+          <div className={classes.seatMap}>
+            <div className={classes.rowContainer}>
+              <div className={classes.rowLabel}>A</div>
+              {[...Array(10)].map((_, index) => (
+                <Seat
+                  key={index}
+                  id={index + 1}
+                  selected={selectedSeats.includes(index + 1)}
+                  onSelect={handleSelectSeat}
+                />
+              ))}
+            </div>
+            {[...Array(9)].map((_, rowIndex) => (
+              <div key={rowIndex} className={classes.rowContainer}>
+                <div className={classes.rowLabel}>{String.fromCharCode(66 + rowIndex)}</div>
+                {[...Array(10)].map((_, seatIndex) => (
+                  <Seat
+                    key={10 * (rowIndex + 1) + seatIndex}
+                    id={10 * (rowIndex + 1) + seatIndex + 1}
+                    selected={selectedSeats.includes(10 * (rowIndex + 1) + seatIndex + 1)}
+                    onSelect={handleSelectSeat}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={classes.dialogBottom}>
+          <div>Selected Seats: {selectedSeats.join(",")}</div>
+          <Button
+            variant="contained"
+            color="primary"
+            className={classes.dialogButton}
+            disabled={hasError}
+            onClick={() => {
+              if (!hasError) {
+                setProceed(true);
+                onClose();
+              }
+            }}
+          >
+            Next
+          </Button>
+        </div>
+      </Dialog>
+
+      <CustomerDetailsDialog
+        seats={selectedSeats.length}
+        selectedShow={selectedShow}
+        updateShowsRevenue={updateShowsRevenue}
+        open={proceed}
+        isAdmin={isAdmin}
+        onClose={() => {
+          setProceed(false);
+        }}
+      />
+    </>
+  );
+};
+
+export default SeatMapDialog;
