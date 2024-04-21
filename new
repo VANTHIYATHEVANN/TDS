@@ -1,0 +1,11 @@
+  const handleSelectSeat = (seatId) => {
+    setSelectedSeats((prevSelectedSeats) => {
+      const rowLabel = calculateRowLabel(seatId);
+      const columnLabel = calculateColumnLabel(seatId);
+      const mappedSeatId = `${rowLabel}${columnLabel}`;
+      
+      return prevSelectedSeats.includes(mappedSeatId)
+        ? prevSelectedSeats.filter((id) => id !== mappedSeatId)
+        : [...prevSelectedSeats, mappedSeatId];
+    });
+  };
