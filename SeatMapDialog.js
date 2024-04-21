@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {IconButton,Typography} from "@material-ui/core";
 import CustomerDetailsDialog from "./CustomerDetailsDialog";
@@ -69,20 +70,35 @@ const SeatMapDialog = ({
           <div className={classes.seatMap}>
             {[...Array(10)].map((_, index) => (
               <div key={index} className={classes.seatColumn}>
-                {[...Array(10)].map((_, i) => (
+                {[...Array(10)].map((_, i) => (   
+                  <div key={i} className={classes.rowContainer}>
+                    {index===0 &&
+                <span style={{position:'relative',top:'30%'}}>{String.fromCharCode(65+i)}</span>}
                   <Seat
                     key={index * 10 + i + 1}
                     id={index * 10 + i + 1}
                     selected={selectedSeats.includes(index * 10 + i + 1)}
                     onSelect={handleSelectSeat}
                   />
+                  {index===4 &&
+                <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>}
+                  </div>
                 ))}
+                <div className={classes.rowLabel}>{index+1}</div>
+                
               </div>
+              
             ))}
           </div>
         </div>
         <div className={classes.dialogBottom}>
-        <div>Selected Seats: {selectedSeats.join(",")}</div>
+        <Typography
+                variant="subtitle2"
+                color="initial"
+                className={classes.dialogContent}
+              >
+                &nbsp;&nbsp;Selected Seats: {selectedSeats.join(",")}
+              </Typography>
         <Button
             variant="contained"
             color="primary"
