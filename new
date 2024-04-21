@@ -1,4 +1,4 @@
-  const handleSelectSeat = (seatId) => {
+const handleSelectSeat = (seatId) => {
     setSelectedSeats((prevSelectedSeats) => {
       const rowLabel = calculateRowLabel(seatId);
       const columnLabel = calculateColumnLabel(seatId);
@@ -8,4 +8,16 @@
         ? prevSelectedSeats.filter((id) => id !== mappedSeatId)
         : [...prevSelectedSeats, mappedSeatId];
     });
+  };
+
+  // Function to calculate the row label (A, B, C, ...)
+  const calculateRowLabel = (seatId) => {
+    const rowNumber = Math.ceil(seatId / 10);
+    return String.fromCharCode(64 + rowNumber);
+  };
+
+  // Function to calculate the column label (1, 2, 3, ...)
+  const calculateColumnLabel = (seatId) => {
+    const columnNumber = seatId % 10 === 0 ? 10 : seatId % 10;
+    return columnNumber.toString();
   };
