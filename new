@@ -1,23 +1,47 @@
-const handleSelectSeat = (seatId) => {
-    setSelectedSeats((prevSelectedSeats) => {
-      const rowLabel = calculateRowLabel(seatId);
-      const columnLabel = calculateColumnLabel(seatId);
-      const mappedSeatId = `${rowLabel}${columnLabel}`;
-      
-      return prevSelectedSeats.includes(mappedSeatId)
-        ? prevSelectedSeats.filter((id) => id !== mappedSeatId)
-        : [...prevSelectedSeats, mappedSeatId];
-    });
-  };
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './App';
 
-  // Function to calculate the row label (A, B, C, ...)
-  const calculateRowLabel = (seatId) => {
-    const rowNumber = Math.ceil(seatId / 10);
-    return String.fromCharCode(64 + rowNumber);
-  };
+ReactDOM.render(<App />, document.getElementById('root'));
 
-  // Function to calculate the column label (1, 2, 3, ...)
-  const calculateColumnLabel = (seatId) => {
-    const columnNumber = seatId % 10 === 0 ? 10 : seatId % 10;
-    return columnNumber.toString();
-  };
+const path = require('path');
+
+module.exports = {
+  entry: './index.js',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bundle.js',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+        },
+      },
+    ],
+  },
+  resolve: {
+    extensions: ['.js', '.jsx'],
+  },
+  devServer: {
+    contentBase: path.resolve(__dirname, 'public'),
+    compress: true,
+    port: 3000,
+  },
+};
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React App</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script src="dist/bundle.js"></script>
+</body>
+</html>
