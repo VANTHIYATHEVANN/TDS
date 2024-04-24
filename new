@@ -1,47 +1,44 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
+package main_test
 
-ReactDOM.render(<App />, document.getElementById('root'));
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-const path = require('path');
+	"github.com/stretchr/testify/assert" // Import the testify library for assertions
+)
 
-module.exports = {
-  entry: './index.js',
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-  },
-  module: {
-    rules: [
-      {
-        test: /\.(js|jsx)$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-        },
-      },
-    ],
-  },
-  resolve: {
-    extensions: ['.js', '.jsx'],
-  },
-  devServer: {
-    contentBase: path.resolve(__dirname, 'public'),
-    compress: true,
-    port: 3000,
-  },
-};
+func TestSetMessageEndpoint(t *testing.T) {
+	// Create a new request to set the message
+	requestBody, _ := json.Marshal(map[string]string{"message": "Test Message"})
+	request := httptest.NewRequest("POST", "/setMessage", bytes.NewBuffer(requestBody))
+	response := httptest.NewRecorder()
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React App</title>
-</head>
-<body>
-    <div id="root"></div>
-    <script src="dist/bundle.js"></script>
-</body>
-</html>
+	// Call the setMessageHandler function directly
+	setMessageHandler(response, request)
+
+	// Check the response status code
+	assert.Equal(t, http.StatusOK, response.Code)
+
+	// Check the response body
+	expectedResponseBody := "Message set to: Test Message"
+	assert.Equal(t, expectedResponseBody, response.Body.String())
+}
+
+func TestGetEchoedMessageEndpoint(t *testing.T) {
+	// Create a new request to get the echoed message
+	request := httptest.NewRequest("GET", "/getEchoedMessage", nil)
+	response := httptest.NewRecorder()
+
+	// Call the getEchoedMessageHandler function directly
+	getEchoedMessageHandler(response, request)
+
+	// Check the response status code
+	assert.Equal(t, http.StatusOK, response.Code)
+
+	// Check the response body
+	expectedResponseBody := "Test Message" // Assuming the echoed message is "Test Message"
+	assert.Equal(t, expectedResponseBody, response.Body.String())
+}
