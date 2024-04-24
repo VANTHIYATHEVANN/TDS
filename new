@@ -1,44 +1,61 @@
-package main_test
+import React from 'react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import App from './App';
 
-import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"testing"
+// Mock fetch API to simulate network requests
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    text: () => Promise.resolve('Test Message'),
+  })
+);
 
-	"github.com/stretchr/testify/assert" // Import the testify library for assertions
-)
+describe('App component', () => {
+  beforeEach(() => {
+    fetch.mockClear(); // Clear fetch mock between tests
+  });
 
-func TestSetMessageEndpoint(t *testing.T) {
-	// Create a new request to set the message
-	requestBody, _ := json.Marshal(map[string]string{"message": "Test Message"})
-	request := httptest.NewRequest("POST", "/setMessage", bytes.NewBuffer(requestBody))
-	response := httptest.NewRecorder()
+  test('renders initial echoed message', async () => {
+    const { getByText } = render(<App />);
+    await waitFor(() => {
+      expect(getByText('Echoed Message: Test Message')).toBeInTheDocument();
+    });
+  });
 
-	// Call the setMessageHandler function directly
-	setMessageHandler(response, request)
+  test('sets message on backend when button is clicked', async () => {
+    const { getByText, getByPlaceholderText } = render(<App />);
+    const input = getByPlaceholderText('Enter message');
+    const button = getByText('Set Message');
 
-	// Check the response status code
-	assert.Equal(t, http.StatusOK, response.Code)
+    fireEvent.change(input, { target: { value: 'New Message' } });
+    fireEvent.click(button);
 
-	// Check the response body
-	expectedResponseBody := "Message set to: Test Message"
-	assert.Equal(t, expectedResponseBody, response.Body.String())
-}
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/setMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: 'New Message' }),
+      });
+    });
+  });
 
-func TestGetEchoedMessageEndpoint(t *testing.T) {
-	// Create a new request to get the echoed message
-	request := httptest.NewRequest("GET", "/getEchoedMessage", nil)
-	response := httptest.NewRecorder()
+  test('sets message on backend when Enter key is pressed', async () => {
+    const { getByPlaceholderText } = render(<App />);
+    const input = getByPlaceholderText('Enter message');
 
-	// Call the getEchoedMessageHandler function directly
-	getEchoedMessageHandler(response, request)
+    fireEvent.change(input, { target: { value: 'Another Message' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
-	// Check the response status code
-	assert.Equal(t, http.StatusOK, response.Code)
-
-	// Check the response body
-	expectedResponseBody := "Test Message" // Assuming the echoed message is "Test Message"
-	assert.Equal(t, expectedResponseBody, response.Body.String())
-}
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/setMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: 'Another Message' }),
+      });
+    });
+  });
+});
