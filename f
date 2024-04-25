@@ -1,63 +1,50 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import App from './App';
 
+// Mock WebSocket
+global.WebSocket = jest.fn();
 
-function App() {
-  const [stocks, setStocks] = useState([]);
-  //const [isChanged,setisChanged]=useState(false);
-  //const [changedStock,setChangedStock]=useState();
-  useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8080/ws');
-    socket.onopen=()=>{
-        console.log("Websocket open")
-    }
-    socket.onerror=(error)=>{
-        console.log(error)
-    }
-    socket.onmessage = (event) => {
-      const newStock = JSON.parse(event.data);
-      //console.log("NS",newStock)
-      setStocks((prevStocks) =>
-        prevStocks.map((stock,index) =>
-          stock.symbol === newStock.symbol ? newStock : prevStocks[index]
-        )
-      );
-      const stockIndex=stocks.findIndex(stock=>stock.symbol===newStock.symbol)
-      if(stockIndex!==-1){
-        const newStocks=[...stocks];
-        newStocks[stockIndex]=newStock;
-        //newStocks.push(newStock);
-        setStocks(newStocks);
-      }else{
-        const newStocks=[...stocks];
-        newStocks.push(newStock);
-        setStocks(newStocks);
+// Mock WebSocket events
+const mockWebSocketEvents = {};
+global.WebSocket.mockImplementation((url) => {
+  const listeners = {};
+  const ws = {
+    url,
+    send: jest.fn(),
+    addEventListener: jest.fn((event, cb) => {
+      listeners[event] = cb;
+    }),
+    removeEventListener: jest.fn((event) => {
+      delete listeners[event];
+    }),
+    trigger: (event, data) => {
+      const listener = listeners[event];
+      if (listener) {
+        listener({ data: JSON.stringify(data) });
       }
-      //console.log("FAter")
-      
-    };
-    socket.onerror=(error)=>{
-        console.log(error)
-    }
-    //console.log(stocks)
-    return () => {
-      socket.close();
-    };
-  }, [stocks]);
+    },
+    close: jest.fn(),
+  };
+  mockWebSocketEvents[url] = ws;
+  return ws;
+});
 
-  return (
-    <div className="App">
-      <h1>Real-time Stock Prices</h1>
-      {console.log(stocks)}
-      <div className="stock-list">
-        {stocks.map((stock) => (
-          <div key={stock.symbol} className="stock">
-            <span className="symbol">{stock.symbol}{"    "}</span>
-            <span className="price">{stock.price.toFixed(2)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+describe('App', () => {
+  it('displays stock prices', async () => {
+    render(<App />);
+    const AAPLPrice = screen.getByText(/AAPL/i);
+    expect(AAPLPrice).toBeInTheDocument();
+    expect(AAPLPrice.nextSibling).toHaveTextContent('0.00');
 
-export default App;
+    // Simulate receiving stock updates
+    mockWebSocketEvents['ws://localhost:8080/ws'].trigger('message', { symbol: 'AAPL', price: 100 });
+
+    await waitFor(() => {
+      expect(AAPLPrice.nextSibling).toHaveTextContent('100.00');
+    });
+
+    // You can add more tests for other scenarios here
+  });
+});
