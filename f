@@ -1,29 +1,85 @@
-ARG REGISTRY_URI
-FROM ${REGISTRY_URI}/alpine:3.16.2 as build
+package main
 
-WORKDIR /app
-COPY package.json ./
-COPY yarn.lock ./
-RUN apk add --update nodejs npm
-RUN npm install -g yarn
-RUN yarn install
-COPY . ./
-RUN yarn
-ARG ENVIRONMENT
-ARG PUBLIC_HOSTNAME_AND_PORT
-ARG REACT_APP_ON_EC2
+import (
+	"log"
+	"math/rand"
+	"net/http"
+	"sync"
+	"time"
 
-# All env variables in React must begin with prefix REACT_APP_
+	"github.com/gorilla/websocket"
+)
 
-ENV REACT_APP_ENVIRONMENT $ENVIRONMENT
-ENV REACT_APP_PUBLIC_HOSTNAME_AND_PORT $PUBLIC_HOSTNAME_AND_PORT
-ENV REACT_APP_ON_EC2 $REACT_APP_ON_EC2
-RUN yarn build
+type Stock struct {
+	Symbol string  `json:"symbol"`
+	Price  float64 `json:"price"`
+}
 
-FROM ${REGISTRY_URI}/nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/build /usr/share/nginx/html
+var (
+	clients  = make(map[*websocket.Conn]bool)
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	mu sync.Mutex
+)
 
-EXPOSE 80
+func main() {
+	// Serve websocketgo
+	http.HandleFunc("/ws", handleWS)
+	// Start emitting mock stock updates
+	go emitMockStockUpdates()
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
 
-CMD ["nginx", "-g", "daemon off;"]
+func handleWS(w http.ResponseWriter, r *http.Request) {
+	// Upgrade connection to websocket
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
+
+	// Register client
+	mu.Lock()
+	clients[conn] = true
+	mu.Unlock()
+	for {
+
+	}
+
+}
+
+func emitMockStockUpdates() {
+	symbols := []string{"AAPL", "GOOG", "MSFT", "AMZN", "FB"}
+	for {
+		// Generate mock stock price updates
+		for _, symbol := range symbols {
+			stock := Stock{
+				Symbol: symbol,
+				Price:  rand.Float64() * 1000, // Generate random price
+			}
+
+			// Broadcast stock update to all clients
+			broadcastStockUpdate(stock)
+
+			// Sleep for a random duration to simulate real-time updates
+			time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+		}
+	}
+}
+
+func broadcastStockUpdate(stock Stock) {
+	mu.Lock()
+	defer mu.Unlock()
+	for client := range clients {
+		err := client.WriteJSON(stock)
+		//fmt.Println(stock)
+		if err != nil {
+			client.Close()
+			delete(clients, client)
+		}
+	}
+}
