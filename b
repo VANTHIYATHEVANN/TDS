@@ -1,85 +1,67 @@
 package main
 
 import (
-	"log"
-	"math/rand"
+	"bytes"
+	"encoding/json"
 	"net/http"
-	"sync"
-	"time"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/gorilla/websocket"
 )
 
-type Stock struct {
-	Symbol string  `json:"symbol"`
-	Price  float64 `json:"price"`
-}
+func TestBroadcastStockUpdate(t *testing.T) {
+	// Create a mock websocket client
+	mockClient := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Fatalf("Failed to upgrade connection: %v", err)
+		}
+		defer conn.Close()
+	}))
 
-var (
-	clients  = make(map[*websocket.Conn]bool)
-	upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-	mu sync.Mutex
-)
+	defer mockClient.Close()
 
-func main() {
-	// Serve websocketgo
-	http.HandleFunc("/ws", handleWS)
-	// Start emitting mock stock updates
-	go emitMockStockUpdates()
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
+	// Convert mockClient URL to websocket URL
+	wsURL := "ws" + mockClient.URL[4:] + "/ws"
 
-func handleWS(w http.ResponseWriter, r *http.Request) {
-	// Upgrade connection to websocket
-	conn, err := upgrader.Upgrade(w, r, nil)
+	// Connect to the websocket server
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
-		log.Println(err)
-		return
+		t.Fatalf("Failed to connect to websocket server: %v", err)
 	}
 	defer conn.Close()
 
-	// Register client
-	mu.Lock()
-	clients[conn] = true
-	mu.Unlock()
-	for {
+	// Create a buffer to read messages from the websocket connection
+	messageBuffer := bytes.NewBuffer(nil)
 
-	}
-
-}
-
-func emitMockStockUpdates() {
-	symbols := []string{"AAPL", "GOOG", "MSFT", "AMZN", "FB"}
-	for {
-		// Generate mock stock price updates
-		for _, symbol := range symbols {
-			stock := Stock{
-				Symbol: symbol,
-				Price:  rand.Float64() * 1000, // Generate random price
+	// Start reading messages from the websocket connection
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				return
 			}
-
-			// Broadcast stock update to all clients
-			broadcastStockUpdate(stock)
-
-			// Sleep for a random duration to simulate real-time updates
-			time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+			messageBuffer.Write(message)
 		}
+	}()
+
+	// Create a mock stock
+	mockStock := Stock{Symbol: "AAPL", Price: 500.0}
+
+	// Broadcast the mock stock update
+	broadcastStockUpdate(mockStock)
+
+	// Read the message received by the client
+	receivedStock := Stock{}
+	err = json.Unmarshal(messageBuffer.Bytes(), &receivedStock)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal message: %v", err)
 	}
-}
 
-func broadcastStockUpdate(stock Stock) {
-	mu.Lock()
-	defer mu.Unlock()
-	for client := range clients {
-		err := client.WriteJSON(stock)
-		//fmt.Println(stock)
-		if err != nil {
-			client.Close()
-			delete(clients, client)
-		}
+	// Check if the received stock matches the mock stock
+	if receivedStock.Symbol != mockStock.Symbol || receivedStock.Price != mockStock.Price {
+		t.Errorf("Received stock does not match the mock stock. Expected: %v, Got: %v", mockStock, receivedStock)
 	}
 }
