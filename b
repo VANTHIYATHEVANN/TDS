@@ -1,57 +1,28 @@
-package main
+ARG REGISTRY_URI
+FROM ${REGISTRY_URI}/golang:latest as builder
 
-import (
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "github.com/rs/cors" // Import the CORS package
-    "time"
-)
+ARG VERSION=1.0
+ARG OS
+ARG ARCH
 
-var echoedMessage string = "Hello, World!"
+# FROM golang as builder
+ENV GO111MODULE=on
+WORKDIR /code
+COPY go.mod go.sum /code/
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=${OS} GOARCH=${ARCH} go build -o ./out/server main.go
 
-func setMessageHandler(w http.ResponseWriter, r *http.Request) {
-    decoder := json.NewDecoder(r.Body)
-    var requestBody map[string]string
-    err := decoder.Decode(&requestBody)
-    if err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
+# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
+COPY Makefile ./
 
-    newMessage, exists := requestBody["message"]
-    if !exists {
-        http.Error(w, "Message not provided", http.StatusBadRequest)
-        return
-    }
+FROM ${REGISTRY_URI}/debian:buster-slim
 
-    echoedMessage = newMessage
-    fmt.Fprintf(w, "Message set to: %s", echoedMessage)
-}
+WORKDIR /app
 
-func echoMessage() {
-    for {
-        fmt.Println(echoedMessage)
-        time.Sleep(5 * time.Second)
-    }
-}
+COPY --from=builder /code/out/server ./out/server
 
-func main() {
-    go echoMessage()
+COPY config/config.yml config.yml
 
-    // Create a new CORS handler with default options
-    corsHandler := cors.Default()
-
-    // Create a new HTTP server mux
-    mux := http.NewServeMux()
-
-    // Register your HTTP handlers
-    mux.HandleFunc("/setMessage", setMessageHandler)
-
-    // Wrap your HTTP server mux with the CORS middleware
-    handler := corsHandler.Handler(mux)
-
-    // Start the HTTP server with the CORS-wrapped handler
-    fmt.Println("Server is running on port 8080...")
-    http.ListenAndServe(":8080", handler)
-}
+EXPOSE 8080
+ENTRYPOINT ["out/server","-configFile","config.yml"]
