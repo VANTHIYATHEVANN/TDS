@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Add backend environment variables if needed
+    depends_on:
+      - postgresdb
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Add frontend environment variables if needed
+    depends_on:
+      - backend
+
+  movie-service:
+    image: sameerazazi87/movies-stub-api:latest
+    ports:
+      - "4545:4545"
+    # Add movie-service environment variables if needed
+
+  postgresdb:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: bookingengine
+      POSTGRES_USER: bookingengine
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
