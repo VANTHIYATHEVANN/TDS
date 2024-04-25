@@ -1,62 +1,29 @@
-import React, { useState, useEffect } from 'react';
+ARG REGISTRY_URI
+FROM ${REGISTRY_URI}/alpine:3.16.2 as build
 
-function App() {
-  const [echoedMessage, setEchoedMessage] = useState('');
+WORKDIR /app
+COPY package.json ./
+COPY yarn.lock ./
+RUN apk add --update nodejs npm
+RUN npm install -g yarn
+RUN yarn install
+COPY . ./
+RUN yarn
+ARG ENVIRONMENT
+ARG PUBLIC_HOSTNAME_AND_PORT
+ARG REACT_APP_ON_EC2
 
-  useEffect(() => {
-    const fetchEchoedMessage = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/getEchoedMessage');
-        const data = await response.text();
-        setEchoedMessage(data);
-      } catch (error) {
-        console.error('Error fetching echoed message:', error);
-      }
-    };
+# All env variables in React must begin with prefix REACT_APP_
 
-    const intervalId = setInterval(fetchEchoedMessage, 5000);
+ENV REACT_APP_ENVIRONMENT $ENVIRONMENT
+ENV REACT_APP_PUBLIC_HOSTNAME_AND_PORT $PUBLIC_HOSTNAME_AND_PORT
+ENV REACT_APP_ON_EC2 $REACT_APP_ON_EC2
+RUN yarn build
 
-    return () => clearInterval(intervalId);
-  }, []);
+FROM ${REGISTRY_URI}/nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build /usr/share/nginx/html
 
-  const setMessageOnBackend = async (message) => {
-    try {
-      const response = await fetch('http://localhost:8080/setMessage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message }),
-      });
-      const data = await response.text();
-      console.log(data);
-    } catch (error) {
-      console.error('Error setting message:', error);
-    }
-  };
+EXPOSE 80
 
-  return (
-    <div>
-      <h1>Echoed Message: {echoedMessage}</h1>
-      <input
-        type="text"
-        placeholder="Enter message"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            setMessageOnBackend(e.target.value);
-          }
-        }}
-      />
-      <button
-        onClick={() => {
-          const message = document.getElementById('messageInput').value;
-          setMessageOnBackend(message);
-        }}
-      >
-        Set Message
-      </button>
-    </div>
-  );
-}
-
-export default App;
+CMD ["nginx", "-g", "daemon off;"]
