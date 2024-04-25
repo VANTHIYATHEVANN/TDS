@@ -1,85 +1,63 @@
-package main
+import React, { useEffect, useState } from 'react';
 
-import (
-	"log"
-	"math/rand"
-	"net/http"
-	"sync"
-	"time"
 
-	"github.com/gorilla/websocket"
-)
+function App() {
+  const [stocks, setStocks] = useState([]);
+  //const [isChanged,setisChanged]=useState(false);
+  //const [changedStock,setChangedStock]=useState();
+  useEffect(() => {
+    const socket = new WebSocket('ws://localhost:8080/ws');
+    socket.onopen=()=>{
+        console.log("Websocket open")
+    }
+    socket.onerror=(error)=>{
+        console.log(error)
+    }
+    socket.onmessage = (event) => {
+      const newStock = JSON.parse(event.data);
+      //console.log("NS",newStock)
+      setStocks((prevStocks) =>
+        prevStocks.map((stock,index) =>
+          stock.symbol === newStock.symbol ? newStock : prevStocks[index]
+        )
+      );
+      const stockIndex=stocks.findIndex(stock=>stock.symbol===newStock.symbol)
+      if(stockIndex!==-1){
+        const newStocks=[...stocks];
+        newStocks[stockIndex]=newStock;
+        //newStocks.push(newStock);
+        setStocks(newStocks);
+      }else{
+        const newStocks=[...stocks];
+        newStocks.push(newStock);
+        setStocks(newStocks);
+      }
+      //console.log("FAter")
+      
+    };
+    socket.onerror=(error)=>{
+        console.log(error)
+    }
+    //console.log(stocks)
+    return () => {
+      socket.close();
+    };
+  }, [stocks]);
 
-type Stock struct {
-	Symbol string  `json:"symbol"`
-	Price  float64 `json:"price"`
+  return (
+    <div className="App">
+      <h1>Real-time Stock Prices</h1>
+      {console.log(stocks)}
+      <div className="stock-list">
+        {stocks.map((stock) => (
+          <div key={stock.symbol} className="stock">
+            <span className="symbol">{stock.symbol}{"    "}</span>
+            <span className="price">{stock.price.toFixed(2)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-var (
-	clients  = make(map[*websocket.Conn]bool)
-	upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-	mu sync.Mutex
-)
-
-func main() {
-	// Serve websocketgo
-	http.HandleFunc("/ws", handleWS)
-	// Start emitting mock stock updates
-	go emitMockStockUpdates()
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func handleWS(w http.ResponseWriter, r *http.Request) {
-	// Upgrade connection to websocket
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer conn.Close()
-
-	// Register client
-	mu.Lock()
-	clients[conn] = true
-	mu.Unlock()
-	for {
-
-	}
-
-}
-
-func emitMockStockUpdates() {
-	symbols := []string{"AAPL", "GOOG", "MSFT", "AMZN", "FB"}
-	for {
-		// Generate mock stock price updates
-		for _, symbol := range symbols {
-			stock := Stock{
-				Symbol: symbol,
-				Price:  rand.Float64() * 1000, // Generate random price
-			}
-
-			// Broadcast stock update to all clients
-			broadcastStockUpdate(stock)
-
-			// Sleep for a random duration to simulate real-time updates
-			time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
-		}
-	}
-}
-
-func broadcastStockUpdate(stock Stock) {
-	mu.Lock()
-	defer mu.Unlock()
-	for client := range clients {
-		err := client.WriteJSON(stock)
-		//fmt.Println(stock)
-		if err != nil {
-			client.Close()
-			delete(clients, client)
-		}
-	}
-}
+export default App;
