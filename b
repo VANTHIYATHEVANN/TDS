@@ -1,15 +1,3 @@
-package main
-
-import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-
-	"github.com/gorilla/websocket"
-)
-
 func TestBroadcastStockUpdate(t *testing.T) {
 	// Create a mock websocket client
 	mockClient := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +21,9 @@ func TestBroadcastStockUpdate(t *testing.T) {
 	}
 	defer conn.Close()
 
+	// Create a channel to signal when a message is received
+	messageReceived := make(chan struct{})
+
 	// Create a buffer to read messages from the websocket connection
 	messageBuffer := bytes.NewBuffer(nil)
 
@@ -44,6 +35,8 @@ func TestBroadcastStockUpdate(t *testing.T) {
 				return
 			}
 			messageBuffer.Write(message)
+			// Signal that a message has been received
+			messageReceived <- struct{}{}
 		}
 	}()
 
@@ -52,6 +45,9 @@ func TestBroadcastStockUpdate(t *testing.T) {
 
 	// Broadcast the mock stock update
 	broadcastStockUpdate(mockStock)
+
+	// Wait for the message to be received
+	<-messageReceived
 
 	// Read the message received by the client
 	receivedStock := Stock{}
@@ -65,3 +61,4 @@ func TestBroadcastStockUpdate(t *testing.T) {
 		t.Errorf("Received stock does not match the mock stock. Expected: %v, Got: %v", mockStock, receivedStock)
 	}
 }
+
